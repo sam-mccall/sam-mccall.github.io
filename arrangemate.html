@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+<head>
+<title>Arrangemate / Anagram tree</title>
+
+<style type="text/css">
+html,body { min-height: 100% }
+html {
+  background-color: #def;
+  margin: 0 auto;
+  height: 100%;
+  overflow-y: auto;
+}
+body {
+  overflow-y: hidden;
+  width: 40em;
+  margin: 0 auto;
+  padding: 0 1em;
+  font-family: sans-serif;
+  background-color: #ffe;
+}
+
+input { flex-grow: 1; }
+div:has(> input) { display: flex; gap: 0.5em; align-items: center; }
+
+.node {
+  border-left: 2px solid #048;
+  background-color: rgba(0,0,0,0.06);
+}
+a.solve{
+  text-decoration: none;
+  filter: brightness(0);
+}
+.node > summary {
+  background-color: #def;
+  padding-left: 0.2em;
+}
+.node > :not(summary) {
+  margin: 1em;
+  margin-right: 0;
+}
+.word {
+  font-style: italic;
+  font-weight: bold;
+}
+.prev {
+  float: right;
+  font-style: italic;
+  color: #48c;
+  margin-right: 0.5em;
+}
+.left{
+  font-weight: bold;
+  font-family: monospace;
+}
+.children { margin-top: 1em; }
+.node.finished summary {
+  list-style: none;
+  background-color: #cdc;
+}
+.node.finished > :not(summary) {
+  display: none;
+}
+</style>
+
+<template id="node">
+  <details class="node" open>
+    <summary><span class="word"></span> <span class="prev"</span></summary>
+    <div>
+      <div><a class="left" target="_blank"></a><a class="solve" target="_blank">✨</a> <input class="guess"></input></div>
+      <div class="children"></div>
+    </div>
+  </details>
+</template>
+
+<script type="text/javascript">
+// Returns the letterset for text: lowercase & sorted.
+function squish(text) {
+  return [...text.toLowerCase().matchAll(/[a-z]/g)].sort().join('');
+}
+// Returns the difference between lettersets, or undefined if not a subset.
+function sub(big, small) {
+  var rest = "";
+  for (let c of big) {
+    if (c == small[0])
+      small = small.substr(1);
+    else
+      rest += c;
+  }
+  if (small == "") return rest;
+}
+// When a value is entered into <input>, send the letterset to callback.
+function textListener(input, contents, callback) {
+  input.addEventListener('keypress', (event) => {
+    if (event.code != "Enter") return;
+    let text = input.value;
+    let letters = squish(text);
+    if (letters == "") return;
+    var rest;
+    if (contents != null) {
+      rest = sub(contents, letters);
+      if (rest == null) return;
+    }
+    input.value = "";
+    callback(text, rest);
+  });
+}
+// Add UI for a tree node, showing the remaining letters and allowing more guesses.
+function addNode(parent, prev, text, rest) {
+  let node = document.getElementById("node").content.cloneNode(true).firstElementChild;
+  node.classList.toggle('finished', rest.length == 0);
+  node.querySelector('.word').innerText = text;
+  node.querySelector('.prev').innerText = prev;
+  node.querySelector('.left').innerText = rest;
+  node.querySelector('.left').href = "https://new.wordsmith.org/anagram/anagram.cgi?l=y&anagram=" + rest;
+  node.querySelector('.solve').href = "https://new.wordsmith.org/anagram/anagram.cgi?anagram=" + rest;
+  parent.querySelector(".children").appendChild(node);
+  node.querySelector('.guess').focus();
+  textListener(node.querySelector('.guess'), rest, (text, rest) => addNode(node, prev + " " + text, text, rest));
+}
+// Hook up the "new phrase" box, which adds new tree root nodes.
+function init() {
+  let root = document.getElementById("root");
+  let input = root.querySelector("input");
+  input.focus();
+  textListener(input, null, (text) => addNode(root, "", text, squish(text)));
+}
+</script>
+
+</head>
+<body>
+<h1>Arrangemate / Anagram tree</h1>
+<div id="root">
+  <div class="children"></div>
+  <div><input class="guess" placeholder="new phrase"></input></div>
+</div>
+<script>init();</script>
+</body>
+</html>
